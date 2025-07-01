@@ -177,7 +177,7 @@
     <!-- Main Content -->
     <div class="main-content">
         <h1>Video Converter</h1>
-        <p>Convert your videos to any format with ease. Last updated: 08:40 AM CAT, Tuesday, July 01, 2025.</p>
+        <p>Convert your videos to any format with ease. Last updated: 08:42 AM CAT, Tuesday, July 01, 2025.</p>
         <div class="converter-section">
             <label for="video-file">Upload Video File:</label>
             <input type="file" id="video-file" accept="video/*">
@@ -210,89 +210,104 @@
     <!-- Foundation JS -->
     <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.7.5/dist/js/foundation.min.js"></script>
     <script>
+        // Function to load FFmpeg and return its exports
+        function loadFFmpeg() {
+            return new Promise((resolve, reject) => {
+                if (typeof FFmpeg === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js';
+                    script.onload = () => resolve(FFmpeg);
+                    script.onerror = () => reject(new Error('Failed to load FFmpeg.wasm'));
+                    document.body.appendChild(script);
+                } else {
+                    resolve(FFmpeg);
+                }
+            });
+        }
+
         $(document).ready(async function() {
             $(document).foundation();
 
-            const { createFFmpeg, fetchFile } = FFmpeg;
-            const ffmpeg = createFFmpeg({ log: true });
-
-            const $fileInput = $("#video-file");
-            const $convertBtn = $("button");
-            const $downloadBtn = $(".download-btn");
-            const $successMessage = $(".success-message");
-            const $error = $(".error");
-            const $progressBar = $(".progress-bar div");
-            const $percentage = $(".percentage");
-
-            let outputFileName = "";
-
-            // Load FFmpeg when the page is ready
+            let { createFFmpeg, fetchFile };
             try {
+                const ffmpegModule = await loadFFmpeg();
+                ({ createFFmpeg, fetchFile } = ffmpegModule);
+                const ffmpeg = createFFmpeg({ log: true });
+
                 if (!ffmpeg.isLoaded()) {
                     await ffmpeg.load();
                     console.log("FFmpeg loaded successfully");
                 }
-            } catch (err) {
-                console.error("Failed to load FFmpeg:", err);
-                $error.text("❌ Failed to initialize converter.").show();
-                return;
-            }
 
-            $convertBtn.on("click", async function() {
-                const file = $fileInput[0].files[0];
-                const format = $("#format-select").val();
+                const $fileInput = $("#video-file");
+                const $convertBtn = $("button");
+                const $downloadBtn = $(".download-btn");
+                const $successMessage = $(".success-message");
+                const $error = $(".error");
+                const $progressBar = $(".progress-bar div");
+                const $percentage = $(".percentage");
 
-                if (!file) {
-                    $error.text("Please select a video file to convert.").show();
-                    return;
-                }
-                $error.hide();
-                $successMessage.hide();
-                $downloadBtn.hide().css("opacity", 0);
-                $progressBar.css("width", "0%");
-                $percentage.text("0%");
+                let outputFileName = "";
 
-                try {
-                    const inputName = file.name;
-                    outputFileName = `output.${format}`;
+                $convertBtn.on("click", async function() {
+                    const file = $fileInput[0].files[0];
+                    const format = $("#format-select").val();
 
-                    ffmpeg.FS("writeFile", inputName, await fetchFile(file));
-
-                    // Simulate progress during conversion (since FFmpeg.wasm lacks native progress)
-                    let progress = 0;
-                    const interval = setInterval(() => {
-                        if (progress < 90) {
-                            progress += 10;
-                            $progressBar.css("width", progress + "%");
-                            $percentage.text(progress + "%");
-                        }
-                    }, 500);
-
-                    await ffmpeg.run("-i", inputName, outputFileName);
-
-                    clearInterval(interval);
-                    $progressBar.css("width", "100%");
-                    $percentage.text("100%");
-
-                    const data = ffmpeg.FS("readFile", outputFileName);
-                    const blob = new Blob([data.buffer], { type: "video/" + format });
-                    const url = URL.createObjectURL(blob);
-
-                    $downloadBtn
-                        .attr("href", url)
-                        .attr("download", outputFileName)
-                        .show()
-                        .animate({ opacity: 1 }, 500);
-
-                    $successMessage.text("✅ Conversion complete!").show();
-                } catch (err) {
-                    console.error("Conversion error:", err);
-                    clearInterval(interval);
+                    if (!file) {
+                        $error.text("Please select a video file to convert.").show();
+                        return;
+                    }
+                    $error.hide();
+                    $successMessage.hide();
+                    $downloadBtn.hide().css("opacity", 0);
                     $progressBar.css("width", "0%");
                     $percentage.text("0%");
-                    $error.text("❌ Conversion failed.").show();
-                }
-            });
+
+                    try {
+                        const inputName = file.name;
+                        outputFileName = `output.${format}`;
+
+                        ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+
+                        // Simulate progress during conversion
+                        let progress = 0;
+                        const interval = setInterval(() => {
+                            if (progress < 90) {
+                                progress += 10;
+                                $progressBar.css("width", progress + "%");
+                                $percentage.text(progress + "%");
+                            }
+                        }, 500);
+
+                        await ffmpeg.run("-i", inputName, outputFileName);
+
+                        clearInterval(interval);
+                        $progressBar.css("width", "100%");
+                        $percentage.text("100%");
+
+                        const data = ffmpeg.FS("readFile", outputFileName);
+                        const blob = new Blob([data.buffer], { type: "video/" + format });
+                        const url = URL.createObjectURL(blob);
+
+                        $downloadBtn
+                            .attr("href", url)
+                            .attr("download", outputFileName)
+                            .show()
+                            .animate({ opacity: 1 }, 500);
+
+                        $successMessage.text("✅ Conversion complete!").show();
+                    } catch (err) {
+                        console.error("Conversion error:", err);
+                        clearInterval(interval);
+                        $progressBar.css("width", "0%");
+                        $percentage.text("0%");
+                        $error.text("❌ Conversion failed.").show();
+                    }
+                });
+            } catch (err) {
+                console.error("FFmpeg loading error:", err);
+                $error.text("❌ Failed to load converter.").show();
+            }
         });
     </script>
 </body>
