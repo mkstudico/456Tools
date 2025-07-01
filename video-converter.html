@@ -15,6 +15,7 @@
             margin: 0;
             padding: 0;
             position: relative;
+            min-height: 100vh;
         }
         .header {
             background: #fff;
@@ -55,6 +56,7 @@
             text-align: center;
             padding: 2rem 1rem;
             background: linear-gradient(to right, #f5f6fa, #fff);
+            min-height: calc(100vh - 200px);
         }
         .main-content h1 {
             font-size: 2rem;
@@ -83,6 +85,7 @@
         }
         .converter-section input[type="file"] {
             margin-bottom: 1rem;
+            width: 100%;
         }
         .converter-section select {
             width: 100%;
@@ -133,9 +136,6 @@
             text-align: left;
         }
         .download-btn {
-            position: absolute;
-            top: 1rem;
-            right: 2rem;
             background: #2ecc71;
             color: #fff;
             padding: 0.5rem 1rem;
@@ -147,6 +147,7 @@
             display: none;
             text-decoration: none;
             text-align: center;
+            margin-top: 1rem;
         }
         .download-btn:hover {
             background: #27ae60;
@@ -156,6 +157,12 @@
             color: #2ecc71;
             margin-top: 1rem;
             text-align: center;
+        }
+        .footer {
+            background: #fff;
+            padding: 1rem;
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
         }
     </style>
 </head>
@@ -171,30 +178,31 @@
             <a href="#" class="login">Login</a>
             <a href="#" class="signup" style="background: #e74c3c; color: #fff; padding: 0.3rem 1rem; border-radius: 4px;">Sign Up</a>
         </div>
-        <a class="download-btn" style="display: none;" download>Download</a>
     </div>
 
     <!-- Main Content -->
     <div class="main-content">
         <h1>Video Converter</h1>
-        <p>Convert your videos to any format with ease. Last updated: 08:42 AM CAT, Tuesday, July 01, 2025.</p>
+        <p>Convert your videos to any format with ease. Last updated: 08:43 AM CAT, Tuesday, July 01, 2025.</p>
         <div class="converter-section">
             <label for="video-file">Upload Video File:</label>
             <input type="file" id="video-file" accept="video/*">
             <label for="format-select">Convert to:</label>
             <select id="format-select">
-                <option value="mp4">MP4</option>
+                <option value="mp4">MP4 (H.264)</option>
+                <option value="webm">WebM (VP9)</option>
+                <option value="mov">MOV (QuickTime)</option>
                 <option value="avi">AVI</option>
-                <option value="mov">MOV</option>
-                <option value="wmv">WMV</option>
+                <option value="gif">Animated GIF</option>
             </select>
             <div class="progress">
                 <div class="progress-bar"><div></div></div>
                 <div class="percentage">0%</div>
             </div>
-            <button>Convert Now</button>
+            <button id="convert-btn">Convert Now</button>
             <div class="success-message"></div>
             <div class="error"></div>
+            <a class="download-btn" download>Download Converted File</a>
         </div>
     </div>
 
@@ -210,104 +218,118 @@
     <!-- Foundation JS -->
     <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.7.5/dist/js/foundation.min.js"></script>
     <script>
-        // Function to load FFmpeg and return its exports
-        function loadFFmpeg() {
-            return new Promise((resolve, reject) => {
-                if (typeof FFmpeg === 'undefined') {
-                    const script = document.createElement('script');
-                    script.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js';
-                    script.onload = () => resolve(FFmpeg);
-                    script.onerror = () => reject(new Error('Failed to load FFmpeg.wasm'));
-                    document.body.appendChild(script);
-                } else {
-                    resolve(FFmpeg);
-                }
-            });
-        }
-
         $(document).ready(async function() {
             $(document).foundation();
 
-            let { createFFmpeg, fetchFile };
-            try {
-                const ffmpegModule = await loadFFmpeg();
-                ({ createFFmpeg, fetchFile } = ffmpegModule);
-                const ffmpeg = createFFmpeg({ log: true });
+            // Initialize FFmpeg
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ 
+                log: true,
+                corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js'
+            });
 
+            // UI elements
+            const $fileInput = $("#video-file");
+            const $convertBtn = $("#convert-btn");
+            const $downloadBtn = $(".download-btn");
+            const $successMessage = $(".success-message");
+            const $error = $(".error");
+            const $progressBar = $(".progress-bar div");
+            const $percentage = $(".percentage");
+
+            // Load FFmpeg
+            try {
                 if (!ffmpeg.isLoaded()) {
+                    $convertBtn.prop("disabled", true).text("Loading FFmpeg...");
                     await ffmpeg.load();
+                    $convertBtn.prop("disabled", false).text("Convert Now");
                     console.log("FFmpeg loaded successfully");
                 }
-
-                const $fileInput = $("#video-file");
-                const $convertBtn = $("button");
-                const $downloadBtn = $(".download-btn");
-                const $successMessage = $(".success-message");
-                const $error = $(".error");
-                const $progressBar = $(".progress-bar div");
-                const $percentage = $(".percentage");
-
-                let outputFileName = "";
-
-                $convertBtn.on("click", async function() {
-                    const file = $fileInput[0].files[0];
-                    const format = $("#format-select").val();
-
-                    if (!file) {
-                        $error.text("Please select a video file to convert.").show();
-                        return;
-                    }
-                    $error.hide();
-                    $successMessage.hide();
-                    $downloadBtn.hide().css("opacity", 0);
-                    $progressBar.css("width", "0%");
-                    $percentage.text("0%");
-
-                    try {
-                        const inputName = file.name;
-                        outputFileName = `output.${format}`;
-
-                        ffmpeg.FS("writeFile", inputName, await fetchFile(file));
-
-                        // Simulate progress during conversion
-                        let progress = 0;
-                        const interval = setInterval(() => {
-                            if (progress < 90) {
-                                progress += 10;
-                                $progressBar.css("width", progress + "%");
-                                $percentage.text(progress + "%");
-                            }
-                        }, 500);
-
-                        await ffmpeg.run("-i", inputName, outputFileName);
-
-                        clearInterval(interval);
-                        $progressBar.css("width", "100%");
-                        $percentage.text("100%");
-
-                        const data = ffmpeg.FS("readFile", outputFileName);
-                        const blob = new Blob([data.buffer], { type: "video/" + format });
-                        const url = URL.createObjectURL(blob);
-
-                        $downloadBtn
-                            .attr("href", url)
-                            .attr("download", outputFileName)
-                            .show()
-                            .animate({ opacity: 1 }, 500);
-
-                        $successMessage.text("✅ Conversion complete!").show();
-                    } catch (err) {
-                        console.error("Conversion error:", err);
-                        clearInterval(interval);
-                        $progressBar.css("width", "0%");
-                        $percentage.text("0%");
-                        $error.text("❌ Conversion failed.").show();
-                    }
-                });
             } catch (err) {
                 console.error("FFmpeg loading error:", err);
-                $error.text("❌ Failed to load converter.").show();
+                $error.text("❌ Failed to load video converter. Please try again later.").show();
+                $convertBtn.prop("disabled", true);
+                return;
             }
+
+            // Conversion function
+            $convertBtn.on("click", async function() {
+                const file = $fileInput[0].files[0];
+                const format = $("#format-select").val();
+
+                if (!file) {
+                    $error.text("Please select a video file to convert.").show();
+                    return;
+                }
+
+                // Reset UI
+                $error.hide();
+                $successMessage.hide();
+                $downloadBtn.hide().css("opacity", 0);
+                $progressBar.css("width", "0%");
+                $percentage.text("0%");
+                $convertBtn.prop("disabled", true).text("Converting...");
+
+                try {
+                    const inputName = file.name;
+                    const outputName = `converted_${Date.now()}.${format}`;
+                    
+                    // Write the file to FFmpeg's virtual file system
+                    ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+
+                    // Set up progress reporting
+                    ffmpeg.setProgress(({ ratio }) => {
+                        const progress = Math.round(ratio * 100);
+                        $progressBar.css("width", `${progress}%`);
+                        $percentage.text(`${progress}%`);
+                    });
+
+                    // Determine conversion command based on format
+                    let command;
+                    switch(format) {
+                        case 'mp4':
+                            command = ['-i', inputName, '-c:v', 'libx264', '-preset', 'fast', '-crf', '22', outputName];
+                            break;
+                        case 'webm':
+                            command = ['-i', inputName, '-c:v', 'libvpx-vp9', '-b:v', '1M', outputName];
+                            break;
+                        case 'gif':
+                            command = ['-i', inputName, '-vf', 'fps=10,scale=640:-1:flags=lanczos', '-f', 'gif', outputName];
+                            break;
+                        default:
+                            command = ['-i', inputName, outputName];
+                    }
+
+                    // Run the conversion
+                    await ffmpeg.run(...command);
+
+                    // Read the result
+                    const data = ffmpeg.FS('readFile', outputName);
+                    
+                    // Create download link
+                    const blob = new Blob([data.buffer], { type: `video/${format}` });
+                    const url = URL.createObjectURL(blob);
+                    
+                    $downloadBtn
+                        .attr("href", url)
+                        .attr("download", outputName)
+                        .show()
+                        .animate({ opacity: 1 }, 300);
+
+                    $successMessage.text("✅ Conversion complete! Click Download to save your file.").show();
+                    $convertBtn.prop("disabled", false).text("Convert Another File");
+                    
+                    // Clean up virtual files
+                    ffmpeg.FS('unlink', inputName);
+                    ffmpeg.FS('unlink', outputName);
+                } catch (err) {
+                    console.error("Conversion error:", err);
+                    $error.text("❌ Conversion failed: " + err.message).show();
+                    $progressBar.css("width", "0%");
+                    $percentage.text("0%");
+                    $convertBtn.prop("disabled", false).text("Try Again");
+                }
+            });
         });
     </script>
 </body>
