@@ -14,6 +14,7 @@
             background: #f5f6fa;
             margin: 0;
             padding: 0;
+            position: relative;
         }
         .header {
             background: #fff;
@@ -67,60 +68,32 @@
             margin: 0 auto 2rem;
         }
         .converter-section {
-            max-width: 900px;
+            max-width: 600px;
             margin: 0 auto;
             background: #fff;
             border-radius: 8px;
             padding: 2rem;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-            gap: 2rem;
         }
-        .converter-section .file-upload {
-            flex: 1;
-            text-align: left;
-        }
-        .converter-section .file-upload label {
+        .converter-section label {
             display: block;
+            text-align: left;
             margin-bottom: 0.5rem;
             color: #2c3e50;
-            font-weight: bold;
         }
-        .converter-section .file-upload .choose-file {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: #e74c3c;
-            color: #fff;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-        .converter-section .file-upload .choose-file:hover {
-            background: #c0392b;
-        }
-        .converter-section .file-upload .choose-file input[type="file"] {
-            display: none;
-        }
-        .converter-section .file-upload .file-name {
-            margin-top: 0.5rem;
-            color: #7f8c8d;
+        .converter-section input[type="file"] {
+            margin-bottom: 1rem;
         }
         .converter-section select {
-            flex: 1;
-            padding: 0.75rem;
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
             border: 1px solid #e0e0e0;
             border-radius: 4px;
-            font-size: 1rem;
         }
         .converter-section .progress {
-            flex: 2;
             text-align: left;
+            margin-bottom: 1rem;
         }
         .converter-section .progress .progress-bar {
             width: 100%;
@@ -140,7 +113,7 @@
             color: #2c3e50;
             font-weight: bold;
         }
-        .converter-section button.convert {
+        .converter-section button {
             background: #e74c3c;
             color: #fff;
             padding: 0.75rem 1.5rem;
@@ -148,24 +121,9 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background 0.3s ease;
-            margin-top: 1rem;
         }
-        .converter-section button.convert:hover {
+        .converter-section button:hover {
             background: #c0392b;
-        }
-        .converter-section .download-btn {
-            display: none;
-            background: #2ecc71;
-            color: #fff;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-            margin-top: 1rem;
-        }
-        .converter-section .download-btn:hover {
-            background: #27ae60;
         }
         .converter-section .error {
             display: none;
@@ -173,15 +131,30 @@
             margin-top: 1rem;
             text-align: left;
         }
-        @media (max-width: 768px) {
-            .converter-section {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            .converter-section select, .converter-section .progress {
-                flex: none;
-                width: 100%;
-            }
+        .download-btn {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            background: #2ecc71;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            display: none;
+            text-decoration: none;
+            text-align: center;
+        }
+        .download-btn:hover {
+            background: #27ae60;
+        }
+        .success-message {
+            display: none;
+            color: #2ecc71;
+            margin-top: 1rem;
+            text-align: center;
         }
     </style>
 </head>
@@ -197,6 +170,7 @@
             <a href="#" class="login">Login</a>
             <a href="#" class="signup" style="background: #e74c3c; color: #fff; padding: 0.3rem 1rem; border-radius: 4px;">Sign Up</a>
         </div>
+        <a class="download-btn" style="display: none;" download>Download</a>
     </div>
 
     <!-- Main Content -->
@@ -204,15 +178,9 @@
         <h1>Video Converter</h1>
         <p>Convert your videos to any format with ease. Select your file and choose the desired output format to get started.</p>
         <div class="converter-section">
-            <div class="file-upload">
-                <label for="video-file">Upload Video File:</label>
-                <div class="choose-file">
-                    <i class="bi bi-upload"></i>
-                    <span>Choose File</span>
-                    <input type="file" id="video-file" accept="video/*">
-                </div>
-                <div class="file-name"></div>
-            </div>
+            <label for="video-file">Upload Video File:</label>
+            <input type="file" id="video-file" accept="video/*">
+            <label for="format-select">Convert to:</label>
             <select id="format-select">
                 <option value="mp4">MP4</option>
                 <option value="avi">AVI</option>
@@ -223,8 +191,8 @@
                 <div class="progress-bar"><div></div></div>
                 <div class="percentage">0%</div>
             </div>
-            <button class="convert">Convert Now</button>
-            <button class="download-btn">Download Converted File</button>
+            <button>Convert Now</button>
+            <div class="success-message"></div>
             <div class="error"></div>
         </div>
     </div>
@@ -234,70 +202,86 @@
         <p>© 2025 456Tools. All rights reserved. | Made by btem@fficial</p>
     </div>
 
+    <!-- FFmpeg.wasm CDN -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js"></script>
     <!-- jQuery (required by Foundation) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Foundation JS -->
     <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.7.5/dist/js/foundation.min.js"></script>
     <script>
+        const { createFFmpeg, fetchFile } = FFmpeg;
+        const ffmpeg = createFFmpeg({ log: true });
+
         $(document).ready(function() {
             $(document).foundation();
 
             const $fileInput = $("#video-file");
-            const $fileName = $(".file-name");
+            const $convertBtn = $("button");
+            const $downloadBtn = $(".download-btn");
+            const $successMessage = $(".success-message");
+            const $error = $(".error");
             const $progressBar = $(".progress-bar div");
             const $percentage = $(".percentage");
-            const $convertBtn = $(".convert");
-            const $downloadBtn = $(".download-btn");
-            const $error = $(".error");
 
-            $fileInput.on("change", function() {
-                const file = this.files[0];
-                if (file) {
-                    $fileName.text(file.name);
-                } else {
-                    $fileName.text("");
-                }
-            });
+            let outputFileName = "";
 
-            $convertBtn.on("click", function() {
+            $convertBtn.on("click", async function() {
                 const file = $fileInput[0].files[0];
+                const format = $("#format-select").val();
+
                 if (!file) {
                     $error.text("Please select a video file to convert.").show();
                     return;
                 }
                 $error.hide();
-                $downloadBtn.hide();
+                $successMessage.hide();
+                $downloadBtn.hide().css("opacity", 0);
+                $progressBar.css("width", "0%");
+                $percentage.text("0%");
 
-                // Simulate upload progress
-                let uploadProgress = 0;
-                const uploadInterval = setInterval(() => {
-                    if (uploadProgress < 70) {
-                        uploadProgress += 10;
-                        $progressBar.css("width", uploadProgress + "%");
-                        $percentage.text(uploadProgress + "%");
-                    } else {
-                        clearInterval(uploadInterval);
-                        simulateProcessing();
+                try {
+                    if (!ffmpeg.isLoaded()) {
+                        await ffmpeg.load();
                     }
-                }, 500);
 
-                function simulateProcessing() {
-                    let processProgress = 70;
-                    const processInterval = setInterval(() => {
-                        if (processProgress < 100) {
-                            processProgress += 5;
-                            $progressBar.css("width", processProgress + "%");
-                            $percentage.text(processProgress + "%");
-                        } else {
-                            clearInterval(processInterval);
-                            $downloadBtn.show();
-                            // Simulate error possibility
-                            if (Math.random() > 0.8) {
-                                $error.text("Error: Conversion failed due to an unexpected issue.").show();
-                                $downloadBtn.hide();
-                            }
+                    const inputName = file.name;
+                    outputFileName = `output.${format}`;
+
+                    ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+
+                    // Simulate progress during conversion
+                    let progress = 0;
+                    const interval = setInterval(() => {
+                        if (progress < 90) {
+                            progress += 10;
+                            $progressBar.css("width", progress + "%");
+                            $percentage.text(progress + "%");
                         }
-                    }, 300);
+                    }, 500);
+
+                    await ffmpeg.run("-i", inputName, outputFileName);
+
+                    clearInterval(interval);
+                    $progressBar.css("width", "100%");
+                    $percentage.text("100%");
+
+                    const data = ffmpeg.FS("readFile", outputFileName);
+                    const blob = new Blob([data.buffer], { type: "video/" + format });
+                    const url = URL.createObjectURL(blob);
+
+                    $downloadBtn
+                        .attr("href", url)
+                        .attr("download", outputFileName)
+                        .show()
+                        .animate({ opacity: 1 }, 500);
+
+                    $successMessage.text("✅ Conversion complete!").show();
+                } catch (err) {
+                    console.error(err);
+                    clearInterval(interval);
+                    $progressBar.css("width", "0%");
+                    $percentage.text("0%");
+                    $error.text("❌ Conversion failed.").show();
                 }
             });
         });
