@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>456Tools - Video Cutter</title>
+    <!-- Foundation CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites@6.7.5/dist/css/foundation.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+        .header {
+            background: #fff;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        .header nav a {
+            margin-left: 1rem;
+            color: #333;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .header nav a:hover {
+            color: #e74c3c;
+        }
+        .header .auth {
+            display: flex;
+            align-items: center;
+        }
+        .header .auth a {
+            margin-left: 1rem;
+            color: #e74c3c;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .header .auth a.login {
+            color: #333;
+        }
+        .main-content {
+            text-align: center;
+            padding: 2rem 1rem;
+            background: linear-gradient(to right, #f5f6fa, #fff);
+        }
+        .main-content h1 {
+            font-size: 2rem;
+            color: #2c3e50;
+            margin-bottom: 0.5rem;
+        }
+        .main-content p {
+            font-size: 1.1rem;
+            color: #7f8c8d;
+            max-width: 800px;
+            margin: 0 auto 2rem;
+        }
+        .cutter-section {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .cutter-section label {
+            display: block;
+            text-align: left;
+            margin-bottom: 0.5rem;
+            color: #2c3e50;
+        }
+        .cutter-section input[type="file"] {
+            margin-bottom: 1rem;
+        }
+        .cutter-section .video-container {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+        .cutter-section video {
+            width: 100%;
+            max-height: 400px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+        .cutter-section canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .cutter-section .trim-range {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba(231, 76, 60, 0.3);
+            border-left: 2px solid #e74c3c;
+            border-right: 2px solid #e74c3c;
+            cursor: ew-resize;
+            display: none;
+        }
+        .cutter-section .trim-handle {
+            position: absolute;
+            width: 10px;
+            height: 100%;
+            background: #e74c3c;
+            cursor: ew-resize;
+        }
+        .cutter-section .time-inputs input[type="text"] {
+            width: 48%;
+            padding: 0.5rem;
+            margin: 0 1% 1rem 0;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .cutter-section .progress {
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+        .cutter-section .progress .progress-bar {
+            width: 100%;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+        .cutter-section .progress .progress-bar div {
+            height: 10px;
+            background: #e74c3c;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+        .cutter-section .progress .percentage {
+            margin-top: 0.25rem;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+        .cutter-section button {
+            background: #e74c3c;
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            width: 100%;
+        }
+        .cutter-section button:hover {
+            background: #c0392b;
+        }
+        .cutter-section .error {
+            display: none;
+            color: #e74c3c;
+            margin-top: 1rem;
+            text-align: left;
+        }
+        .download-btn {
+            position: absolute;
+            top: 1rem;
+            right: 2rem;
+            background: #2ecc71;
+            color: #fff;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            display: none;
+            text-decoration: none;
+            text-align: center;
+        }
+        .download-btn:hover {
+            background: #27ae60;
+        }
+        .success-message {
+            display: none;
+            color: #2ecc71;
+            margin-top: 1rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">456Tools</div>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="index.html#all-tools">All Tools</a>
+        </nav>
+        <div class="auth">
+            <a href="#" class="login">Login</a>
+            <a href="#" class="signup" style="background: #e74c3c; color: #fff; padding: 0.3rem 1rem; border-radius: 4px;">Sign Up</a>
+        </div>
+        <a class="download-btn" style="display: none;" download>Download</a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <h1>Video Cutter</h1>
+        <p>Cut your videos with precision using the real-time canvas. Last updated: 08:59 AM CAT, Tuesday, July 01, 2025.</p>
+        <div class="cutter-section">
+            <label for="video-file">Upload Video File:</label>
+            <input type="file" id="video-file" accept="video/*">
+            <div class="video-container">
+                <video id="video-player" controls></video>
+                <canvas id="trim-canvas"></canvas>
+                <div class="trim-range" id="trim-range">
+                    <div class="trim-handle" id="trim-start"></div>
+                    <div class="trim-handle" id="trim-end"></div>
+                </div>
+            </div>
+            <div class="time-inputs">
+                <label for="start-time">Start Time:</label>
+                <input type="text" id="start-time" placeholder="e.g., 00:00:05" readonly>
+                <label for="end-time">End Time:</label>
+                <input type="text" id="end-time" placeholder="e.g., 00:00:10" readonly>
+            </div>
+            <div class="progress">
+                <div class="progress-bar"><div></div></div>
+                <div class="percentage">0%</div>
+            </div>
+            <button>Cut Video</button>
+            <div class="success-message"></div>
+            <div class="error"></div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>© 2025 456Tools. All rights reserved. | Made by btem@fficial</p>
+    </div>
+
+    <!-- FFmpeg.wasm CDN -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js"></script>
+    <!-- jQuery (required by Foundation) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Foundation JS -->
+    <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.7.5/dist/js/foundation.min.js"></script>
+    <script>
+        // Function to load FFmpeg and return its exports
+        function loadFFmpeg() {
+            return new Promise((resolve, reject) => {
+                if (typeof FFmpeg === 'undefined') {
+                    const script = document.createElement('script');
+                    script.src = 'https://unpkg.com/@ffmpeg/ffmpeg@0.11.8/dist/ffmpeg.min.js';
+                    script.onload = () => resolve(window.FFmpeg);
+                    script.onerror = () => reject(new Error('Failed to load FFmpeg.wasm'));
+                    document.body.appendChild(script);
+                } else {
+                    resolve(window.FFmpeg);
+                }
+            });
+        }
+
+        $(document).ready(async function() {
+            $(document).foundation();
+
+            let createFFmpeg, fetchFile, ffmpeg;
+            try {
+                const ffmpegModule = await loadFFmpeg();
+                ({ createFFmpeg, fetchFile } = ffmpegModule);
+                ffmpeg = createFFmpeg({ log: true });
+
+                if (!ffmpeg.isLoaded()) {
+                    await ffmpeg.load();
+                    console.log("FFmpeg loaded successfully");
+                }
+
+                const $fileInput = $("#video-file");
+                const $videoPlayer = $("#video-player");
+                const $trimCanvas = $("#trim-canvas");
+                const $trimRange = $("#trim-range");
+                const $trimStart = $("#trim-start");
+                const $trimEnd = $("#trim-end");
+                const $startTime = $("#start-time");
+                $startTime.on("input", function() {
+                    this.value = this.value.replace(/[^0-9:]/g, '').substring(0, 8);
+                });
+                const $endTime = $("#end-time");
+                $endTime.on("input", function() {
+                    this.value = this.value.replace(/[^0-9:]/g, '').substring(0, 8);
+                });
+                const $cutBtn = $("button");
+                const $downloadBtn = $(".download-btn");
+                const $successMessage = $(".success-message");
+                const $error = $(".error");
+                const $progressBar = $(".progress-bar div");
+                const $percentage = $(".percentage");
+
+                let outputFileName = "";
+                let videoDuration = 0;
+                let isDraggingStart = false;
+                let isDraggingEnd = false;
+                let startOffset = 0;
+                let endOffset = 0;
+
+                $fileInput.on("change", function() {
+                    const file = this.files[0];
+                    if (file) {
+                        const url = URL.createObjectURL(file);
+                        $videoPlayer.attr("src", url);
+                        $trimRange.hide();
+                        $startTime.val("");
+                        $endTime.val("");
+                    }
+                });
+
+                $videoPlayer.on("loadedmetadata", function() {
+                    videoDuration = this.duration;
+                    $trimCanvas.attr({ width: this.videoWidth, height: this.videoHeight });
+                    $trimRange.css({ width: "100%", display: "block" });
+                    $trimStart.css("left", "0");
+                    $trimEnd.css("left", "100%");
+                    updateTimes();
+                });
+
+                $trimCanvas.on("mousedown", function(e) {
+                    const rect = $trimCanvas[0].getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const width = rect.width;
+                    const clickPercent = x / width;
+                    const handleWidth = 10;
+                    if (Math.abs(x - parseFloat($trimStart.css("left"))) < handleWidth) {
+                        isDraggingStart = true;
+                    } else if (Math.abs(x - parseFloat($trimEnd.css("left"))) < handleWidth) {
+                        isDraggingEnd = true;
+                    } else {
+                        const newStart = x / width * 100;
+                        $trimStart.css("left", `${newStart}%`);
+                        $trimEnd.css("left", `${newStart + 10}%`);
+                        updateTimes();
+                    }
+                });
+
+                $(document).on("mousemove", function(e) {
+                    if (isDraggingStart || isDraggingEnd) {
+                        const rect = $trimCanvas[0].getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const width = rect.width;
+                        const newPos = Math.max(0, Math.min(100, (x / width) * 100));
+                        if (isDraggingStart) {
+                            $trimStart.css("left", `${newPos}%`);
+                            if (parseFloat($trimStart.css("left")) >= parseFloat($trimEnd.css("left")) - 1) {
+                                $trimStart.css("left", `${parseFloat($trimEnd.css("left")) - 1}%`);
+                            }
+                        } else if (isDraggingEnd) {
+                            $trimEnd.css("left", `${newPos}%`);
+                            if (parseFloat($trimEnd.css("left")) <= parseFloat($trimStart.css("left")) + 1) {
+                                $trimEnd.css("left", `${parseFloat($trimStart.css("left")) + 1}%`);
+                            }
+                        }
+                        updateTimes();
+                    }
+                });
+
+                $(document).on("mouseup", function() {
+                    isDraggingStart = false;
+                    isDraggingEnd = false;
+                });
+
+                function updateTimes() {
+                    const startPercent = parseFloat($trimStart.css("left")) / 100;
+                    const endPercent = parseFloat($trimEnd.css("left")) / 100;
+                    const startSec = (startPercent * videoDuration).toFixed(2);
+                    const endSec = (endPercent * videoDuration).toFixed(2);
+                    $startTime.val(formatTime(startSec));
+                    $endTime.val(formatTime(endSec));
+                }
+
+                function formatTime(seconds) {
+                    const hrs = Math.floor(seconds / 3600);
+                    const mins = Math.floor((seconds % 3600) / 60);
+                    const secs = Math.floor(seconds % 60);
+                    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                }
+
+                $cutBtn.on("click", async function() {
+                    const file = $fileInput[0].files[0];
+                    const startTime = $startTime.val();
+                    const endTime = $endTime.val();
+
+                    if (!file || !startTime || !endTime) {
+                        $error.text("Please upload a video and set trim points.").show();
+                        return;
+                    }
+                    $error.hide();
+                    $successMessage.hide();
+                    $downloadBtn.hide().css("opacity", 0);
+                    $progressBar.css("width", "0%");
+                    $percentage.text("0%");
+
+                    try {
+                        const inputName = file.name;
+                        outputFileName = `cut_${inputName}`;
+
+                        ffmpeg.FS("writeFile", inputName, await fetchFile(file));
+
+                        // Simulate progress during cutting
+                        let progress = 0;
+                        const interval = setInterval(() => {
+                            if (progress < 90) {
+                                progress += 10;
+                                $progressBar.css("width", progress + "%");
+                                $percentage.text(progress + "%");
+                            }
+                        }, 500);
+
+                        await ffmpeg.run("-i", inputName, "-ss", startTime, "-to", endTime, "-c", "copy", outputFileName);
+
+                        clearInterval(interval);
+                        $progressBar.css("width", "100%");
+                        $percentage.text("100%");
+
+                        const data = ffmpeg.FS("readFile", outputFileName);
+                        const blob = new Blob([data.buffer], { type: file.type });
+                        const url = URL.createObjectURL(blob);
+
+                        $downloadBtn
+                            .attr("href", url)
+                            .attr("download", outputFileName)
+                            .show()
+                            .animate({ opacity: 1 }, 500);
+
+                        $successMessage.text("✅ Video cut successfully!").show();
+                    } catch (err) {
+                        console.error("Cutting error:", err);
+                        clearInterval(interval);
+                        $progressBar.css("width", "0%");
+                        $percentage.text("0%");
+                        $error.text("❌ Cutting failed.").show();
+                    }
+                });
+            } catch (err) {
+                console.error("FFmpeg loading error:", err);
+                $error.text("❌ Failed to load cutter.").show();
+            }
+        });
+    </script>
+</body>
+</html>
